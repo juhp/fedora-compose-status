@@ -2,15 +2,19 @@
 
 module Main (main) where
 
-import Control.Monad (when)
+import Control.Monad.Extra (forM_, when, whenJustM, (>=>))
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char
 import Data.List.Extra (lower)
-import Data.Maybe
+import Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Data.Time.LocalTime
 import Network.HTTP.Directory
 import Network.HTTP.Simple
 import SimpleCmdArgs
+
+data Snapshot = Latest | Newest | Snap String
 
 -- FIXME branched
 main :: IO ()
@@ -28,33 +32,49 @@ main =
     statusCmd
     <$> switchWith 'd' "debug" "debug output"
     <*> optional (strArg "RELEASE")
-    <*> optional (strArg "SNAPSHOT")
+    <*> snapOpt
   ]
+  where
+    snapOpt =
+      Snap <$> strArg "SNAPSHOT" <|>
+      flagWith Newest Latest 'l' "latest" "latest finished snapshot"
 
 topUrl :: String
 topUrl = "https://kojipkgs.fedoraproject.org/compose"
 
 listCmd :: Maybe String -> IO ()
-listCmd mrelease = do
-  let release = fromMaybe "rawhide" mrelease
-  composes <- httpDirectory' $ topUrl +/+ release
-  mapM_ T.putStrLn composes
+listCmd mrelease =
+  getComposes mrelease >>= mapM_ T.putStrLn
 
-statusCmd :: Bool -> Maybe String -> Maybe String -> IO ()
-statusCmd debug mrelease msnapshot = do
+getComposes :: Maybe String -> IO [Text]
+getComposes mrelease = do
   let release = maybe "rawhide" lower mrelease
-  mapM_ (fetchFile release) ["COMPOSE_ID", "STATUS"]
+  httpDirectory' $ topUrl +/+ release
+
+newestCompose :: Maybe String -> IO String
+newestCompose mrelease = do
+  composes <- getComposes mrelease
+  return $ T.unpack $ last $ filter (not . (T.pack "latest-" `T.isPrefixOf`)) composes
+
+statusCmd :: Bool -> Maybe String -> Snapshot -> IO ()
+statusCmd debug mrelease snapshot = do
+  let release = maybe "rawhide" lower mrelease
+  fetchFile release
   where
-    fetchFile release file = do
-      let snapshot =
-            case msnapshot of
-              Nothing -> "latest-Fedora-" ++ capitalize release
-              Just snap ->  "Fedora-" ++ capitalize release ++ '-' : snap
-          url = topUrl +/+ release +/+ snapshot +/+ file
-      when debug $ putStrLn url
-      resp <- parseRequest url
-            >>= httpLBS
-      B.putStrLn $ getResponseBody resp
+    fetchFile release = do
+      snap <-
+        case snapshot of
+          Latest -> return $ "latest-Fedora-" ++ capitalize release
+          Newest -> newestCompose mrelease
+          Snap snap -> return $ "Fedora-" ++ capitalize release ++ '-' : snap
+      let snapurl = topUrl +/+ release +/+ snap
+      when debug $ putStrLn snapurl
+      forM_ ["COMPOSE_ID", "STATUS"] $ \file -> do
+        resp <- parseRequest (snapurl +/+ file) >>= httpLBS
+        B.putStr $ getResponseBody resp
+        when (file == "COMPOSE_ID") $ putChar '\n'
+      whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
+        utcToLocalZonedTime >=> print
 
 capitalize :: String -> String
 capitalize "" = ""
