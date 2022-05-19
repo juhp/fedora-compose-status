@@ -16,20 +16,6 @@ import Network.HTTP.Simple
     ( parseRequest, getResponseBody, httpLBS )
 import SimpleCmdArgs
 
-data Channel = Rawhide | Updates
-
-readChannel :: String -> Either String Channel
-readChannel s =
-  case lower s of
-    "rawhide" -> Right Rawhide
-    "update" -> Right Updates
-    "updates" -> Right Updates
-    o -> Left $ "unsupported channel: " ++ o
-
-showChannel :: Channel -> String
-showChannel Rawhide = "rawhide"
-showChannel Updates = "updates"
-
 -- FIXME branched
 main :: IO ()
 main =
@@ -38,18 +24,18 @@ main =
   "description here" $
   subcommands
   [ Subcommand "list"
-    "List channels/updates/composes" $
+    "List dirs/composes" $
     listCmd
     <$> debugOpt
     <*> numOpt
-    <*> optional (strArg "DIR")
+    <*> optional dirOpt
     <*> optional snapOpt
   , Subcommand "status"
     "Show compose status" $
     statusCmd
     <$> debugOpt
     <*> numOpt
-    <*> channelOpt
+    <*> dirOpt
     <*> optional snapOpt
   ]
   where
@@ -59,7 +45,7 @@ main =
       flagWith' Nothing 'a' "all" "All composes" <|>
       Just <$> optionalWith auto 'n' "number" "LIMIT" "Number of composes (default: 1)" 1
 
-    channelOpt = argumentWith (eitherReader readChannel) "rawhide|updates"
+    dirOpt = strArg "DIR"
 
     snapOpt = strArg "SUBSTR"
 
@@ -87,13 +73,13 @@ getComposes debug mlimit dir mpat = do
 
     limitNumber = maybe id takeEnd mlimit
 
-statusCmd :: Bool -> Maybe Int -> Channel -> Maybe String -> IO ()
-statusCmd debug mlim channel mpat = do
-  getComposes debug mlim (showChannel channel) mpat >>=
-    mapM_ checkStatus
+statusCmd :: Bool -> Maybe Int -> FilePath -> Maybe String -> IO ()
+statusCmd debug mlim dir mpat =
+  getComposes debug mlim dir mpat >>=
+  mapM_ checkStatus
   where
     checkStatus compose = do
-      let snapurl = topUrl +/+ showChannel channel +/+ T.unpack compose
+      let snapurl = topUrl +/+ dir +/+ T.unpack compose
       when debug $ putStrLn snapurl
       whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
         utcToLocalZonedTime >=> putStr . show
