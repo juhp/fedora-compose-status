@@ -95,12 +95,14 @@ statusCmd debug mlim channel mpat = do
     checkStatus compose = do
       let snapurl = topUrl +/+ showChannel channel +/+ T.unpack compose
       when debug $ putStrLn snapurl
+      whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
+        utcToLocalZonedTime >=> putStr . show
+      putChar ' '
       forM_ ["COMPOSE_ID", "STATUS"] $ \file -> do
         resp <- parseRequest (snapurl +/+ file) >>= httpLBS
         B.putStr $ removeFinalNewLine $ getResponseBody resp
         putChar ' '
-      whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
-        utcToLocalZonedTime >=> print
+      putChar '\n'
 
     removeFinalNewLine bs = if B.last bs == '\n' then B.init bs else bs
 
