@@ -2,7 +2,7 @@
 
 module Main (main) where
 
-import Control.Monad.Extra (forM_, when, whenJustM, (>=>))
+import Control.Monad.Extra (when, whenJustM, (>=>))
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char ( isDigit )
 import Data.List.Extra ( lower, groupOn, sort, sortOn, takeEnd)
@@ -81,14 +81,17 @@ statusCmd debug mlim dir mpat =
     checkStatus compose = do
       let snapurl = topUrl +/+ dir +/+ T.unpack compose
       when debug $ putStrLn snapurl
-      whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
-        utcToLocalZonedTime >=> putStr . show
+      putComposeFile snapurl "STATUS"
       putChar ' '
-      forM_ ["COMPOSE_ID", "STATUS"] $ \file -> do
-        resp <- parseRequest (snapurl +/+ file) >>= httpLBS
-        B.putStr $ removeFinalNewLine $ getResponseBody resp
-        putChar ' '
+      whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
+        utcToLocalZonedTime >=> putStr . (++ " ") . show
+      putComposeFile snapurl "COMPOSE_ID"
       putChar '\n'
+
+    putComposeFile url file =
+      parseRequest (url +/+ file) >>= httpLBS >>=
+      B.putStr . removeFinalNewLine . getResponseBody
+
 
     removeFinalNewLine bs = if B.last bs == '\n' then B.init bs else bs
 
