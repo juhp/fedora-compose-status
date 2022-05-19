@@ -8,7 +8,7 @@ program (c, argsv) =
   where
     run args = do
       putStrLn ""
-      cmdLog "fedora-compose-status" (c ++ args)
+      cmdLog "fedora-composes" (c ++ args)
 
 tests :: [([String], [[String]])]
 tests =

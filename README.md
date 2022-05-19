@@ -1,10 +1,10 @@
-# fedora-compose-status
+# fedora-composes
 
-`fedora-compose-status list` shows release composes
+`fedora-composes list` shows release composes
 
-`fedora-compose-status status` shows status of newest compose
+`fedora-composes list updates` shows updates composes
 
-The commands default to Rawhide.
+`fedora-composes status rawhide` shows status of newest compose
 
 ## Installation
 
