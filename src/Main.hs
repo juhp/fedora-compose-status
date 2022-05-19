@@ -4,18 +4,31 @@ module Main (main) where
 
 import Control.Monad.Extra (forM_, when, whenJustM, (>=>))
 import qualified Data.ByteString.Lazy.Char8 as B
-import Data.Char
-import Data.List.Extra (lower, takeEnd)
+import Data.Char ( isDigit )
+import Data.List.Extra ( lower, groupOn, sort, sortOn, takeEnd)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import Data.Time.LocalTime
+import Data.Time.LocalTime (utcToLocalZonedTime)
 import Network.HTTP.Directory
+    ( (+/+), httpDirectory', httpLastModified', noTrailingSlash )
 import Network.HTTP.Simple
+    ( parseRequest, getResponseBody, httpLBS )
 import SimpleCmdArgs
 
-data Snapshot = Latest | Newest | Snap String | Compose Text | Recent
-  deriving Eq
+data Channel = Rawhide | Updates
+
+readChannel :: String -> Either String Channel
+readChannel s =
+  case lower s of
+    "rawhide" -> Right Rawhide
+    "update" -> Right Updates
+    "updates" -> Right Updates
+    o -> Left $ "unsupported channel: " ++ o
+
+showChannel :: Channel -> String
+showChannel Rawhide = "rawhide"
+showChannel Updates = "updates"
 
 -- FIXME branched
 main :: IO ()
@@ -25,57 +38,62 @@ main =
   "description here" $
   subcommands
   [ Subcommand "list"
-    "List composes" $
+    "List channels/updates/composes" $
     listCmd
-    <$> optional (strArg "RELEASE")
+    <$> debugOpt
+    <*> numOpt
+    <*> optional (strArg "DIR")
+    <*> optional snapOpt
   , Subcommand "status"
     "Show compose status" $
     statusCmd
-    <$> switchWith 'd' "debug" "debug output"
-    <*> optional (strArg "RELEASE")
-    <*> snapOpt
+    <$> debugOpt
+    <*> numOpt
+    <*> channelOpt
+    <*> optional snapOpt
   ]
   where
-    snapOpt =
-      Snap <$> strArg "SNAPSHOT" <|>
-      flagWith' Latest 'l' "latest" "latest finished snapshot" <|>
-      flagWith Newest Recent 'r' "recent" "last 10 snapshots"
+    debugOpt = switchWith 'd' "debug" "debug output"
+
+    numOpt =
+      flagWith' Nothing 'a' "all" "All composes" <|>
+      Just <$> optionalWith auto 'n' "number" "LIMIT" "Number of composes (default: 1)" 1
+
+    channelOpt = argumentWith (eitherReader readChannel) "rawhide|updates"
+
+    snapOpt = strArg "SUBSTR"
 
 topUrl :: String
 topUrl = "https://kojipkgs.fedoraproject.org/compose"
 
-listCmd :: Maybe String -> IO ()
-listCmd mrelease =
-  getComposes mrelease >>= mapM_ T.putStrLn
+httpDirectories :: String -> IO [Text]
+httpDirectories = fmap (map noTrailingSlash) . httpDirectory'
 
-getComposes :: Maybe String -> IO [Text]
-getComposes mrelease = do
-  let release = maybe "rawhide" lower mrelease
-  filter (not . (T.pack "latest-" `T.isPrefixOf`)) <$>
-    httpDirectory' (topUrl +/+ release)
+listCmd :: Bool -> Maybe Int -> Maybe String -> Maybe String -> IO ()
+listCmd _ _ Nothing _ =
+  httpDirectories topUrl >>= mapM_ T.putStrLn
+listCmd debug mlimit (Just dir) mpat =
+  getComposes debug mlimit dir mpat >>= mapM_ T.putStrLn
 
-newestCompose :: Maybe String -> IO String
-newestCompose mrelease = do
-  composes <- getComposes mrelease
-  return $ T.unpack $ last composes
-
-statusCmd :: Bool -> Maybe String -> Snapshot -> IO ()
-statusCmd debug mrelease snapshot = do
-  let release = maybe "rawhide" lower mrelease
-  if snapshot == Recent
-    then
-    getComposes mrelease >>=
-    mapM_ (statusCmd debug mrelease . Compose) . takeEnd 10
-    else checkStatus release
+getComposes :: Bool -> Maybe Int -> FilePath -> Maybe String -> IO [Text]
+getComposes debug mlimit dir mpat = do
+  let url = topUrl +/+ dir
+  when debug $ putStrLn url
+  mconcat . map sort . limitNumber . groupOn (T.takeWhileEnd (/= '-')) . sortOn (T.takeWhileEnd (/= '-')) . subset .
+    filter (\c -> isDigit (T.last c) && T.any (== '.') c) <$>
+    httpDirectories url
   where
-    checkStatus release = do
-      snap <-
-        case snapshot of
-          Latest -> return $ "latest-Fedora-" ++ capitalize release
-          Snap snap -> return $ "Fedora-" ++ capitalize release ++ '-' : snap
-          Compose comp -> return $ T.unpack comp
-          _ -> newestCompose mrelease
-      let snapurl = topUrl +/+ release +/+ snap
+    subset = maybe id (\n -> filter ((T.pack (lower n) `T.isInfixOf`) . T.toLower)) mpat
+
+    limitNumber = maybe id takeEnd mlimit
+
+statusCmd :: Bool -> Maybe Int -> Channel -> Maybe String -> IO ()
+statusCmd debug mlim channel mpat = do
+  getComposes debug mlim (showChannel channel) mpat >>=
+    mapM_ checkStatus
+  where
+    checkStatus compose = do
+      let snapurl = topUrl +/+ showChannel channel +/+ T.unpack compose
       when debug $ putStrLn snapurl
       forM_ ["COMPOSE_ID", "STATUS"] $ \file -> do
         resp <- parseRequest (snapurl +/+ file) >>= httpLBS
@@ -85,6 +103,7 @@ statusCmd debug mrelease snapshot = do
         utcToLocalZonedTime >=> print
 
     removeFinalNewLine bs = if B.last bs == '\n' then B.init bs else bs
-capitalize :: String -> String
-capitalize "" = ""
-capitalize (h:t) = toUpper h : t
+
+-- capitalize :: String -> String
+-- capitalize "" = ""
+-- capitalize (h:t) = toUpper h : t
