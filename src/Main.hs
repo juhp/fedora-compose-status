@@ -24,10 +24,12 @@ main =
   "description here" $
   subcommands
   [ Subcommand "list"
-    "List dirs/composes" $
+    "List dirs/composes (by default only last compose)" $
     listCmd
     <$> debugOpt
     <*> numOpt
+    <*> limitOpt
+    <*> switchWith 'r' "repos" "Only list target repos"
     <*> optional dirOpt
     <*> optional snapOpt
   , Subcommand "status"
@@ -35,6 +37,7 @@ main =
     statusCmd
     <$> debugOpt
     <*> numOpt
+    <*> limitOpt
     <*> dirOpt
     <*> optional snapOpt
   ]
@@ -42,8 +45,12 @@ main =
     debugOpt = switchWith 'd' "debug" "debug output"
 
     numOpt =
-      flagWith' Nothing 'a' "all" "All composes" <|>
-      Just <$> optionalWith auto 'n' "number" "LIMIT" "Number of composes (default: 1)" 1
+      flagWith' Nothing 'a' "all-repos" "All repos" <|>
+      Just <$> optionalWith auto 'n' "num" "NOREPOS" "Number of repos (default: 6)" 6
+
+    limitOpt =
+      flagWith' Nothing 'A' "all-composes" "All composes" <|>
+      Just <$> optionalWith auto 'l' "limit" "LIMIT" "Number of composes (default: 1)" 1
 
     dirOpt = strArg "DIR"
 
@@ -55,27 +62,47 @@ topUrl = "https://kojipkgs.fedoraproject.org/compose"
 httpDirectories :: String -> IO [Text]
 httpDirectories = fmap (map noTrailingSlash) . httpDirectory'
 
-listCmd :: Bool -> Maybe Int -> Maybe String -> Maybe String -> IO ()
-listCmd _ _ Nothing _ =
+listCmd :: Bool -> Maybe Int -> Maybe Int -> Bool -> Maybe String
+        -> Maybe String -> IO ()
+listCmd _ _ _ _ Nothing _ =
   httpDirectories topUrl >>= mapM_ T.putStrLn
-listCmd debug mlimit (Just dir) mpat =
-  getComposes debug mlimit dir mpat >>= mapM_ T.putStrLn
+listCmd debug mrepos mlimit onlyrepos (Just dir) mpat =
+  getComposes debug mrepos mlimit onlyrepos dir mpat >>= mapM_ T.putStrLn
 
-getComposes :: Bool -> Maybe Int -> FilePath -> Maybe String -> IO [Text]
-getComposes debug mlimit dir mpat = do
+getComposes :: Bool -> Maybe Int -> Maybe Int -> Bool -> FilePath
+            -> Maybe String -> IO [Text]
+getComposes debug mrepos mlimit onlyrepos dir mpat = do
   let url = topUrl +/+ dir
   when debug $ putStrLn url
-  mconcat . map sort . limitNumber . groupOn (T.takeWhileEnd (/= '-')) . sortOn (T.takeWhileEnd (/= '-')) . subset .
+  repocomposes <-
+    groupOn (T.dropWhileEnd (/= '-')) .
+    sortOn (T.dropWhileEnd (/= '-')) . subset .
     filter (\c -> isDigit (T.last c) && T.any (== '.') c) <$>
     httpDirectories url
+  when debug $ print $ map last repocomposes
+  return $
+    (if onlyrepos
+     then mconcat . map limitRepos . groupOn removeRelease . map removeDate
+     else mconcat . map sort . map limitComposes . limitRepos) repocomposes
   where
     subset = maybe id (\n -> filter ((T.pack (lower n) `T.isInfixOf`) . T.toLower)) mpat
 
-    limitNumber = maybe id takeEnd mlimit
+    limitRepos = maybe id takeEnd mrepos
+    limitComposes = maybe id takeEnd mlimit
 
-statusCmd :: Bool -> Maybe Int -> FilePath -> Maybe String -> IO ()
-statusCmd debug mlim dir mpat =
-  getComposes debug mlim dir mpat >>=
+    removeDate = T.init . T.dropWhileEnd (/= '-') . head
+
+    removeRelease t =
+      let reldash = (T.dropWhileEnd isDigit . T.dropWhileEnd (not . isDigit)) t
+      in if T.null reldash
+         then t
+         else T.init reldash
+
+-- FIXME sort output by timestamp
+statusCmd :: Bool -> Maybe Int -> Maybe Int -> FilePath -> Maybe String
+          -> IO ()
+statusCmd debug mrepos mlimit dir mpat =
+  getComposes debug mrepos mlimit False dir mpat >>=
   mapM_ checkStatus
   where
     checkStatus compose = do

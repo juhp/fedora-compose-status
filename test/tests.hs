@@ -15,7 +15,8 @@ tests =
   [
     (["list"],
      [["rawhide"]
-     ,["updates"]
+     ,["-r", "-n4", "updates"]
+     ,["-n3", "updates"]
      ])
   ,
     (["status"],
