@@ -110,6 +110,9 @@ statusCmd debug mrepos mlimit dir mpat =
       when debug $ putStrLn snapurl
       putComposeFile snapurl "STATUS"
       putChar ' '
+      -- FIXME use formatTime
+      whenJustM (httpLastModified' (snapurl +/+ "COMPOSE_ID")) $
+        utcToLocalZonedTime >=> putStr . (++ " -> ") . show
       whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
         utcToLocalZonedTime >=> putStr . (++ " ") . show
       putComposeFile snapurl "COMPOSE_ID"
