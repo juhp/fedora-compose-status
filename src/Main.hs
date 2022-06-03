@@ -2,14 +2,14 @@
 
 module Main (main) where
 
-import Control.Monad.Extra (when, whenJustM, (>=>))
+import Control.Monad.Extra (when)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char ( isDigit )
 import Data.List.Extra ( lower, groupOn, sort, sortOn, takeEnd)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import Data.Time.LocalTime (utcToLocalZonedTime)
+import Data.Time.LocalTime (getCurrentTimeZone, utcToZonedTime)
 import Network.HTTP.Directory
     ( (+/+), httpDirectory', httpLastModified', noTrailingSlash )
 import Network.HTTP.Simple
@@ -101,26 +101,30 @@ getComposes debug mrepos mlimit onlyrepos dir mpat = do
 -- FIXME sort output by timestamp
 statusCmd :: Bool -> Maybe Int -> Maybe Int -> FilePath -> Maybe String
           -> IO ()
-statusCmd debug mrepos mlimit dir mpat =
+statusCmd debug mrepos mlimit dir mpat = do
+  tz <- getCurrentTimeZone
   getComposes debug mrepos mlimit False dir mpat >>=
-  mapM_ checkStatus
+    mapM (checkStatus tz) >>= mapM_ putStrLn . sort
   where
-    checkStatus compose = do
+    checkStatus tz compose = do
       let snapurl = topUrl +/+ dir +/+ T.unpack compose
       when debug $ putStrLn snapurl
-      putComposeFile snapurl "STATUS"
-      putChar ' '
+      status <- getComposeFile snapurl "STATUS"
+--      putChar ' '
       -- FIXME use formatTime
-      whenJustM (httpLastModified' (snapurl +/+ "COMPOSE_ID")) $
-        utcToLocalZonedTime >=> putStr . (++ " -> ") . show
-      whenJustM (httpLastModified' (snapurl +/+ "STATUS")) $
-        utcToLocalZonedTime >=> putStr . (++ " ") . show
-      putComposeFile snapurl "COMPOSE_ID"
-      putChar '\n'
+      mstart <- fmap (utcToZonedTime tz) <$>
+                httpLastModified' (snapurl +/+ "COMPOSE_ID")
+      mfinish <- fmap (utcToZonedTime tz) <$>
+                 httpLastModified' (snapurl +/+ "STATUS")
+      composeId <- getComposeFile snapurl "COMPOSE_ID"
+      return $ unwords [maybe "" ((++ " ->") . show)  mstart,
+                        maybe "" show mfinish,
+                        B.unpack status,
+                        B.unpack composeId]
 
-    putComposeFile url file =
+    getComposeFile url file =
       parseRequest (url +/+ file) >>= httpLBS >>=
-      B.putStr . removeFinalNewLine . getResponseBody
+      return . removeFinalNewLine . getResponseBody
 
 
     removeFinalNewLine bs = if B.last bs == '\n' then B.init bs else bs
