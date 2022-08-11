@@ -5,6 +5,7 @@ module Main (main) where
 import Control.Monad.Extra (when)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char ( isDigit )
+import Data.Functor ((<&>))
 import Data.List.Extra ( lower, groupOn, sort, sortOn, takeEnd)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -84,7 +85,7 @@ getComposes debug mrepos mlimit onlyrepos dir mpat = do
   return $
     (if onlyrepos
      then mconcat . map limitRepos . groupOn removeRelease . map removeDate
-     else mconcat . map sort . map limitComposes . limitRepos) repocomposes
+     else mconcat . map (sort . limitComposes) . limitRepos) repocomposes
   where
     subset = maybe id (\n -> filter ((T.pack (lower n) `T.isInfixOf`) . T.toLower)) mpat
 
@@ -124,8 +125,9 @@ statusCmd debug mrepos mlimit dir mpat = do
                         B.unpack composeId]
 
     getComposeFile url file =
-      parseRequest (url +/+ file) >>= httpLBS >>=
-      return . removeFinalNewLine . getResponseBody
+      parseRequest (url +/+ file)
+      >>= httpLBS
+      <&> removeFinalNewLine . getResponseBody
 
 
     removeFinalNewLine bs = if B.last bs == '\n' then B.init bs else bs
