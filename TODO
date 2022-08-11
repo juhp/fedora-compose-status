@@ -1,1 +1,2 @@
-merge into dl-fedora
+- merge into dl-fedora
+- support centos-stream

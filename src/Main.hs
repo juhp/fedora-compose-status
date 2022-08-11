@@ -16,10 +16,11 @@ import Network.HTTP.Simple
     ( parseRequest, getResponseBody, httpLBS )
 import SimpleCmdArgs
 
--- FIXME branched
+import Paths_fedora_composes (version)
+
 main :: IO ()
 main =
-  simpleCmdArgs' Nothing
+  simpleCmdArgs' (Just version)
   "check status of fedora composes"
   "description here" $
   subcommands

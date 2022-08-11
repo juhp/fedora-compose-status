@@ -1,27 +1,31 @@
 import SimpleCmd
 import System.IO
 
-program :: ([String], [[String]]) -> IO ()
+program :: (String, [[String]]) -> IO ()
 program (c, argsv) =
-  putStrLn ("\n# " ++ head c) >>
+  putStrLn ("\n# " ++ c) >>
   mapM_ run argsv
   where
     run args = do
       putStrLn ""
-      cmdLog "fedora-composes" (c ++ args)
+      cmdLog "fedora-composes" (c : args)
 
-tests :: [([String], [[String]])]
+tests :: [(String, [[String]])]
 tests =
   [
-    (["list"],
+    ("list",
      [["rawhide"]
      ,["-r", "-n4", "updates"]
-     ,["-n3", "updates"]
+     ,["-l2", "updates"]
+     ,["updates", "fedora-36"]
      ])
   ,
-    (["status"],
+    ("status",
      [["updates"]
-     ,["-n2", "rawhide"]
+     ,["updates", "fedora-36"]
+     ,["rawhide"]
+     ,["branched"]
+     ,["branched", "37"]
      ])
   ]
 

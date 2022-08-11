@@ -1,24 +1,24 @@
 name:                fedora-composes
-version:             0.1.0
-synopsis:            One line summary
+version:             0.1
+synopsis:            Query Fedora composes
 description:
-        Short paragraph here
+        CLI tool to list and check status of Fedora composes
 license:             BSD3
 license-file:        LICENSE
 author:              Jens Petersen <juhpetersen@gmail.com>
 maintainer:          Jens Petersen <juhpetersen@gmail.com>
 copyright:           2022  Jens Petersen <juhpetersen@gmail.com>
-category:            Unclassified
+category:            Utility
 homepage:            https://github.com/juhp/fedora-composes
 bug-reports:         https://github.com/juhp/fedora-composes/issues
 build-type:          Simple
 extra-doc-files:     README.md
---                       ChangeLog.md
+                     ChangeLog.md
 cabal-version:       2.0
--- tested-with:         GHC == 8.6.5
---                        | == 8.8.4
---                        | == 8.10.7
---                        | == 9.0.2
+tested-with:         GHC == 8.6.5
+                      || == 8.8.4
+                      || == 8.10.7
+                      || == 9.0.2
 
 source-repository head
   type:                git
@@ -26,7 +26,8 @@ source-repository head
 
 executable fedora-composes
   main-is:             Main.hs
---  other-modules:       Paths_fedora_composes
+  other-modules:       Paths_fedora_composes
+  autogen-modules:     Paths_fedora_composes
   hs-source-dirs:      src
   build-depends:       base < 5,
                        bytestring,
