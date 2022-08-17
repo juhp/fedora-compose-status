@@ -69,10 +69,10 @@ listCmd :: Bool -> Maybe Int -> Maybe Int -> Bool -> Maybe String
 listCmd _ _ _ _ Nothing _ =
   httpDirectories topUrl >>= mapM_ T.putStrLn
 listCmd debug mrepos mlimit onlyrepos (Just dir) mpat =
-  getComposes debug mrepos mlimit onlyrepos dir mpat >>= mapM_ T.putStrLn
+  getComposes debug mrepos mlimit onlyrepos dir mpat >>= mapM_ putStrLn
 
 getComposes :: Bool -> Maybe Int -> Maybe Int -> Bool -> FilePath
-            -> Maybe String -> IO [Text]
+            -> Maybe String -> IO [String]
 getComposes debug mrepos mlimit onlyrepos dir mpat = do
   let url = topUrl +/+ dir
   when debug $ putStrLn url
@@ -83,10 +83,14 @@ getComposes debug mrepos mlimit onlyrepos dir mpat = do
     httpDirectories url
   when debug $ print $ map last repocomposes
   return $
-    (if onlyrepos
-     then mconcat . map limitRepos . groupOn removeRelease . map removeDate
-     else mconcat . map (sort . limitComposes) . limitRepos) repocomposes
+    map ((url +/+) . T.unpack) $ concat $ selectRepos repocomposes
   where
+    selectRepos :: [[Text]] -> [[Text]]
+    selectRepos =
+      if onlyrepos
+      then map limitRepos . groupOn removeRelease . map removeDate
+      else map (sort . limitComposes) . limitRepos
+
     subset = maybe id (\n -> filter ((T.pack (lower n) `T.isInfixOf`) . T.toLower)) mpat
 
     limitRepos = maybe id takeEnd mrepos
@@ -108,9 +112,7 @@ statusCmd debug mrepos mlimit dir mpat = do
   getComposes debug mrepos mlimit False dir mpat >>=
     mapM (checkStatus tz) >>= mapM_ putStrLn . sort
   where
-    checkStatus tz compose = do
-      let snapurl = topUrl +/+ dir +/+ T.unpack compose
-      when debug $ putStrLn snapurl
+    checkStatus tz snapurl = do
       status <- getComposeFile snapurl "STATUS"
 --      putChar ' '
       -- FIXME use formatTime
@@ -118,11 +120,9 @@ statusCmd debug mrepos mlimit dir mpat = do
                 httpLastModified' (snapurl +/+ "COMPOSE_ID")
       mfinish <- fmap (utcToZonedTime tz) <$>
                  httpLastModified' (snapurl +/+ "STATUS")
-      composeId <- getComposeFile snapurl "COMPOSE_ID"
-      return $ unwords [maybe "" ((++ " ->") . show)  mstart,
-                        maybe "" show mfinish,
-                        B.unpack status,
-                        B.unpack composeId]
+      return $ unlines [snapurl,
+                        maybe "" show mstart,
+                        maybe "" show mfinish ++ " " ++ B.unpack status]
 
     getComposeFile url file =
       parseRequest (url +/+ file)
