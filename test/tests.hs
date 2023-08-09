@@ -15,17 +15,17 @@ tests =
   [
     ("list",
      [["rawhide"]
-     ,["-r", "-n4", "updates"]
+     ,["-r", "updates"]
      ,["-l2", "updates"]
-     ,["updates", "fedora-36"]
+     ,["updates", "fedora-38"]
      ])
   ,
     ("status",
      [["updates"]
-     ,["updates", "fedora-36"]
+     ,["updates", "fedora-38"]
      ,["rawhide"]
      ,["branched"]
-     ,["branched", "37"]
+     ,["branched", "39"]
      ])
   ]
 
