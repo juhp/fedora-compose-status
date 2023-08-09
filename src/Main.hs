@@ -6,7 +6,7 @@ import Control.Monad.Extra (when)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char ( isDigit )
 import Data.Functor ((<&>))
-import Data.List.Extra ( lower, sort, sortOn, takeEnd)
+import Data.List.Extra (lower, nub, sort, {-sortOn,-} takeEnd)
 import Data.Maybe (isJust)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -67,16 +67,16 @@ listCmd debug mlimit onlyrepos (Just dir) mpat =
   getComposes debug mlimit onlyrepos dir mpat >>= mapM_ putStrLn
 
 data Compose =
-  Compose {compRepo :: Text, compDate :: Text}
-  deriving Show
+  Compose {compDate :: Text, compRepo :: Text}
+  deriving (Eq, Ord, Show)
 
 readCompose :: Text -> Compose
 readCompose t =
   case T.breakOnEnd (T.pack "-") t of
-    (repoDash,date) -> Compose (T.init repoDash) date
+    (repoDash,date) -> Compose date (T.init repoDash)
 
-showCompose :: Compose -> Text
-showCompose (Compose r d) = r <> T.pack "-" <> d
+showCompose :: Compose -> String
+showCompose (Compose d r) = T.unpack r <> "-" <> T.unpack d
 
 -- data RepoComposes = RepoComposes Text [Text]
 
@@ -86,27 +86,27 @@ getComposes debug mlimit onlyrepos dir mpat = do
   let url = topUrl +/+ dir
   when debug $ putStrLn url
   repocomposes <-
-    sortOn compDate .
+    limitComposes .
+    sort .
     repoSubset .
     map readCompose .
     filter (\c -> isDigit (T.last c) && T.any (== '.') c) <$>
     httpDirectories url
   when debug $ print $ repocomposes
-  return $
-    map ((url +/+) . T.unpack) $ selectRepos repocomposes
+  return $ selectRepos url repocomposes
   where
-    selectRepos :: [Compose] -> [Text]
-    selectRepos =
+    selectRepos :: String -> [Compose] -> [String]
+    selectRepos url =
       if onlyrepos
-      then map compRepo . limitComposes -- FIXME this is wrong
-      else map showCompose . sortRelease . limitComposes
+      then map T.unpack . nub . map compRepo -- FIXME this is wrong
+      else map ((url +/+) . showCompose)
 
     repoSubset :: [Compose] -> [Compose]
     repoSubset = maybe id (\n -> filter ((T.pack (lower n) `T.isInfixOf`) . T.toLower . compRepo)) mpat
 
     limitComposes = maybe id takeEnd mlimit
 
-    sortRelease = sortOn (T.takeWhileEnd (/= '-') . compRepo)
+--    sortRelease = sortOn (T.takeWhileEnd (/= '-') . compRepo)
 
 -- FIXME sort output by timestamp
 statusCmd :: Bool -> Maybe Int -> FilePath -> Maybe String
@@ -114,7 +114,7 @@ statusCmd :: Bool -> Maybe Int -> FilePath -> Maybe String
 statusCmd debug mlimit dir mpat = do
   tz <- getCurrentTimeZone
   getComposes debug mlimit False dir mpat >>=
-    mapM (checkStatus tz) >>= mapM_ putStrLn . sort
+    mapM (checkStatus tz) >>= mapM_ putStrLn
   where
     checkStatus tz snapurl = do
 --      putChar ' '
