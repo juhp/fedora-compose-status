@@ -123,11 +123,12 @@ statusCmd debug mlimit dir mpat = do
       mfinish <- httpMaybeLastModified $  snapurl +/+ "STATUS"
       status <-
         if isJust mfinish
-        then getComposeFile snapurl "STATUS"
-        else return $ B.pack "STATUS missing"
-      return $ unlines [snapurl,
-                        maybe "" show mstart,
-                        maybe "" show mfinish ++ " " ++ B.unpack status]
+        then B.unpack <$> getComposeFile snapurl "STATUS"
+        else return "STATUS missing"
+      return $ unlines $
+        snapurl :
+        [maybe "" show mstart | status /= "STARTED"] ++
+        [maybe "" show mfinish ++ " " ++ status]
         where
           httpMaybeLastModified url = do
             exists <- httpExists' url
