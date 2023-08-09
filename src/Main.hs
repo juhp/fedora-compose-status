@@ -6,7 +6,7 @@ import Control.Monad.Extra (when)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char ( isDigit )
 import Data.Functor ((<&>))
-import Data.List.Extra ( lower, groupOn, sort, sortOn, takeEnd)
+import Data.List.Extra ( lower, sort, sortOn, takeEnd)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -52,7 +52,7 @@ main =
 
     limitOpt =
       flagWith' Nothing 'A' "all-composes" "All composes" <|>
-      Just <$> optionalWith auto 'l' "limit" "LIMIT" "Number of composes (default: 1)" 1
+      Just <$> optionalWith auto 'l' "limit" "LIMIT" "Number of composes (default: 10)" 10
 
     dirOpt = strArg "DIR"
 
@@ -71,38 +71,60 @@ listCmd _ _ _ _ Nothing _ =
 listCmd debug mrepos mlimit onlyrepos (Just dir) mpat =
   getComposes debug mrepos mlimit onlyrepos dir mpat >>= mapM_ putStrLn
 
+data Compose =
+  Compose {compRepo :: Text, compDate :: Text}
+  deriving Show
+
+readCompose :: Text -> Compose
+readCompose t =
+  case T.breakOnEnd (T.pack "-") t of
+    (repoDash,date) -> Compose (T.init repoDash) date
+
+showCompose :: Compose -> Text
+showCompose (Compose r d) = r <> T.pack "-" <> d
+
+-- data RepoComposes = RepoComposes Text [Text]
+
 getComposes :: Bool -> Maybe Int -> Maybe Int -> Bool -> FilePath
             -> Maybe String -> IO [String]
-getComposes debug mrepos mlimit onlyrepos dir mpat = do
+getComposes debug mrepos mdays onlyrepos dir mpat = do
   let url = topUrl +/+ dir
   when debug $ putStrLn url
   repocomposes <-
-    groupOn (T.dropWhileEnd (/= '-')) .
-    sortOn (T.dropWhileEnd (/= '-')) . subset .
+    sortOn compDate .
+    repoSubset .
+    map readCompose .
     filter (\c -> isDigit (T.last c) && T.any (== '.') c) <$>
     httpDirectories url
-  when debug $ print $ map last repocomposes
+  when debug $ print $ repocomposes
   return $
-    map ((url +/+) . T.unpack) $ concat $ selectRepos repocomposes
+    map ((url +/+) . T.unpack) $ sort $ selectRepos repocomposes
   where
-    selectRepos :: [[Text]] -> [[Text]]
+    selectRepos :: [Compose] -> [Text]
     selectRepos =
       if onlyrepos
-      then map limitRepos . groupOn removeRelease . map removeDate
-      else map (sort . limitComposes) . limitRepos
+      then map compRepo . limitComposes
+      else map showCompose . limitComposes
 
-    subset = maybe id (\n -> filter ((T.pack (lower n) `T.isInfixOf`) . T.toLower)) mpat
+    -- groupSortOn (T.dropWhileEnd (/= '-')) .
+    -- groupComposes :: [Compose] -> [RepoComposes]
+    -- groupComposes = mkRepoComps . groupSortOn compRepo
+    --   where
+    --     mkRepoComps cs = RepoComposes (compRepo (head cs)) (map compDate cs)
 
-    limitRepos = maybe id takeEnd mrepos
-    limitComposes = maybe id takeEnd mlimit
+    repoSubset :: [Compose] -> [Compose]
+    repoSubset = maybe id (\n -> filter ((T.pack (lower n) `T.isInfixOf`) . T.toLower . compRepo)) mpat
 
-    removeDate = T.init . T.dropWhileEnd (/= '-') . head
+    -- limitRepos = maybe id takeEnd mrepos
+    limitComposes = maybe id takeEnd mdays
 
-    removeRelease t =
-      let reldash = (T.dropWhileEnd isDigit . T.dropWhileEnd (not . isDigit)) t
-      in if T.null reldash
-         then t
-         else T.init reldash
+    --removeDate = T.init . T.dropWhileEnd (/= '-') . head
+
+    -- removeRelease t =
+    --   let reldash = (T.dropWhileEnd isDigit . T.dropWhileEnd (not . isDigit)) t
+    --   in if T.null reldash
+    --      then t
+    --      else T.init reldash
 
 -- FIXME sort output by timestamp
 statusCmd :: Bool -> Maybe Int -> Maybe Int -> FilePath -> Maybe String
@@ -128,7 +150,6 @@ statusCmd debug mrepos mlimit dir mpat = do
       parseRequest (url +/+ file)
       >>= httpLBS
       <&> removeFinalNewLine . getResponseBody
-
 
     removeFinalNewLine bs = if B.last bs == '\n' then B.init bs else bs
 
