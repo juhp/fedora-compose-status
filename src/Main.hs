@@ -7,12 +7,13 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char ( isDigit )
 import Data.Functor ((<&>))
 import Data.List.Extra ( lower, sort, sortOn, takeEnd)
+import Data.Maybe (isJust)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time.LocalTime (getCurrentTimeZone, utcToZonedTime)
 import Network.HTTP.Directory
-    ( (+/+), httpDirectory', httpLastModified', noTrailingSlash )
+    ( (+/+), httpDirectory', httpExists', httpLastModified', noTrailingSlash )
 import Network.HTTP.Simple
     ( parseRequest, getResponseBody, httpLBS )
 import SimpleCmdArgs
@@ -116,16 +117,23 @@ statusCmd debug mlimit dir mpat = do
     mapM (checkStatus tz) >>= mapM_ putStrLn . sort
   where
     checkStatus tz snapurl = do
-      status <- getComposeFile snapurl "STATUS"
 --      putChar ' '
       -- FIXME use formatTime
-      mstart <- fmap (utcToZonedTime tz) <$>
-                httpLastModified' (snapurl +/+ "COMPOSE_ID")
-      mfinish <- fmap (utcToZonedTime tz) <$>
-                 httpLastModified' (snapurl +/+ "STATUS")
+      mstart <- httpMaybeLastModified $  snapurl +/+ "COMPOSE_ID"
+      mfinish <- httpMaybeLastModified $  snapurl +/+ "STATUS"
+      status <-
+        if isJust mfinish
+        then getComposeFile snapurl "STATUS"
+        else return $ B.pack "STATUS missing"
       return $ unlines [snapurl,
                         maybe "" show mstart,
                         maybe "" show mfinish ++ " " ++ B.unpack status]
+        where
+          httpMaybeLastModified url = do
+            exists <- httpExists' url
+            if exists
+              then fmap (utcToZonedTime tz) <$> httpLastModified' url
+              else return Nothing
 
     getComposeFile url file =
       parseRequest (url +/+ file)
