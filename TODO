@@ -1,2 +1,11 @@
+- common aliases:
+  - epel, epel8, epel9
+
+- ignore old dates/years (eg 2020)
+
+- option to ignore Modular
+
 - merge into dl-fedora
 - support centos-stream
+- handle silverblue
+  - https://kojipkgs.fedoraproject.org/compose/ostree/repo/refs/heads/fedora/37/x86_64/
