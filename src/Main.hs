@@ -97,7 +97,7 @@ getComposes debug mlimit onlyrepos dir mpat = do
     map readCompose .
     filter (\c -> isDigit (T.last c) && T.any (== '.') c) <$>
     httpDirectories url
-  when debug $ print $ repocomposes
+  when debug $ print repocomposes
   return $ reverse $ selectRepos url repocomposes
   where
     selectRepos :: String -> [Compose] -> [String]
