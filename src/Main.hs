@@ -44,6 +44,7 @@ main =
     statusCmd
     <$> debugOpt
     <*> optional limitOpt
+    <*> switchWith 'm' "more" "Offer showing older composes"
     <*> dirOpt
     <*> optional snapOpt
   ]
@@ -115,9 +116,9 @@ getComposes debug mlimit onlyrepos dir mpat = do
         Limit n -> takeEnd n
         NoLimit -> id
 
-statusCmd :: Bool -> Maybe Limit -> FilePath -> Maybe String
+statusCmd :: Bool -> Maybe Limit -> Bool -> FilePath -> Maybe String
           -> IO ()
-statusCmd debug mlimit dir mpat = do
+statusCmd debug mlimit askmore dir mpat = do
   tz <- getCurrentTimeZone
   getComposes debug mlimit False dir mpat >>=
     foldM_ (checkStatus tz) (Just False)
@@ -130,9 +131,12 @@ statusCmd debug mlimit dir mpat = do
           if isNothing mfinished
           then do
             -- FIXME better haskeline
-            ok <- promptKeyPress "Press key for more or Ctrl-d to finish:"
-            cursorUp 1
-            return ok
+            if askmore
+              then do
+                press <- promptKeyPress "Press key for more or Ctrl-d to finish:"
+                cursorUp 1
+                return press
+              else return False
           else putChar '\r' >> return True
         if not more
           then return (Just True)
