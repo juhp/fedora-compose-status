@@ -6,18 +6,21 @@ A small tool to list and check the status of Fedora composes.
 
 `$ fedora-composes list -l1 rawhide`
 ```
-https://kojipkgs.fedoraproject.org/compose/rawhide/Fedora-Rawhide-20231027.n.0
+https://kojipkgs.fedoraproject.org/compose/rawhide/Fedora-Rawhide-20231102.n.0
 ```
 `$ fedora-composes list -l2 branched`
 ```
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231027.n.0
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231026.n.0
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231102.n.0
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231101.n.0
 ```
-`$ fedora-composes status branched 39`
+`$ fedora-composes status -n branched`
 ```
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231027.n.0
-2023-10-27 15:18:56 +08
-2023-10-27 18:45:42 +08 FINISHED_INCOMPLETE
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231102.n.0
+2023-11-02 15:18:47 +08 STARTED
+
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231101.n.0
+2023-11-01 15:18:43 +08
+2023-11-01 19:58:53 +08 FINISHED_INCOMPLETE
 
 ```
 
@@ -89,7 +92,7 @@ Available options:
 ```
 Usage: fedora-composes status [-d|--debug] 
                               [(-a|--all-composes) | (-l|--limit LIMIT)] 
-                              [-m|--more] DIR [SUBSTR]
+                              [-n|--no-more] DIR [SUBSTR]
 
   Show compose status
 
@@ -97,7 +100,7 @@ Available options:
   -d,--debug               debug output
   -a,--all-composes        All composes
   -l,--limit LIMIT         Max number of composes
-  -m,--more                Offer showing older composes
+  -n,--no-more             Do not prompt for more results
   -h,--help                Show this help text
 ```
 

@@ -2,7 +2,7 @@
 
 ## 0.2 (2022-10-27)
 - output compose urls and use multiple lines for status
-- status: default to showing latest finished, --more to prompt to show older
+- status: default to showing latest finished and prompt to show older
 - if STARTED only print STATUS time
 - handle missing STATUS and COMPOSE_ID
 - default to up to 10 composes
