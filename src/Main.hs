@@ -134,7 +134,7 @@ statusCmd debug mlimit nomore dir mpat = do
               then return False
               else do
                 yes <- yesNoDefault False "Show more results"
-                cursorUp 1
+                cursorUp 1 >> clearFromCursorToLineEnd
                 return yes
           else return True
         if not more
