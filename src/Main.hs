@@ -149,7 +149,7 @@ statusCmd debug mlimit nomore dir mpat = do
             then B.unpack <$> getComposeFile snapurl "STATUS"
             else return "STATUS missing"
           putStrLn $ unlines $
-            snapurl :
+            (snapurl +/+ if status == "DOOMED" then "logs/global/" else "")  :
             [maybe "" show mstart | status /= "STARTED"] ++
             [maybe "" show mfinish ++ " " ++ status]
           return $ if "FINISHED" `isPrefixOf` status

@@ -6,6 +6,8 @@
 - if STARTED only print STATUS time
 - handle missing STATUS and COMPOSE_ID
 - default to up to 10 composes
+- add --latest option
+- append logs/global to url if doomed
 
 ## 0.1 (2022-08-11)
 - initial release with list and status commands and filtering

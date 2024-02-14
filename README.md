@@ -15,7 +15,7 @@ https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240213.n.1
 ```
 `$ fedora-composes status --no-more branched`
 ```
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240214.n.0
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240214.n.0/logs/global/
 2024-02-14 15:19:10 +08
 2024-02-14 15:31:52 +08 DOOMED
 
@@ -75,8 +75,8 @@ Filtering is case insensitive.
 
 `$ fedora-composes list --help`
 ```
-Usage: fedora-composes list [-d|--debug]
-                            [(-a|--all-composes) | (-L|--latest) |
+Usage: fedora-composes list [-d|--debug] 
+                            [(-a|--all-composes) | (-L|--latest) | 
                               (-l|--limit LIMIT)] [-r|--repos] [DIR] [SUBSTR]
 
   List dirs/composes (by default only last compose)
@@ -100,8 +100,8 @@ Available options:
 
 `$ fedora-composes status --help`
 ```
-Usage: fedora-composes status [-d|--debug]
-                              [(-a|--all-composes) | (-L|--latest) |
+Usage: fedora-composes status [-d|--debug] 
+                              [(-a|--all-composes) | (-L|--latest) | 
                                 (-l|--limit LIMIT)] [-n|--no-more] DIR [SUBSTR]
 
   Show compose status
