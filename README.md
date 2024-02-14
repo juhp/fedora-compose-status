@@ -4,23 +4,32 @@ A small tool to list and check the status of Fedora composes.
 
 ## Examples
 
-`$ fedora-composes list -l1 rawhide`
+`$ fedora-composes list --latest rawhide`
 ```
-https://kojipkgs.fedoraproject.org/compose/rawhide/Fedora-Rawhide-20231102.n.0
+https://kojipkgs.fedoraproject.org/compose/rawhide/Fedora-Rawhide-20240214.n.1
 ```
 `$ fedora-composes list -l2 branched`
 ```
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231102.n.0
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231101.n.0
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240214.n.0
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240213.n.1
 ```
-`$ fedora-composes status -n branched`
+`$ fedora-composes status --no-more branched`
 ```
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231102.n.0
-2023-11-02 15:18:47 +08 STARTED
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240214.n.0
+2024-02-14 15:19:10 +08
+2024-02-14 15:31:52 +08 DOOMED
 
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-39-20231101.n.0
-2023-11-01 15:18:43 +08
-2023-11-01 19:58:53 +08 FINISHED_INCOMPLETE
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240213.n.1
+2024-02-14 03:40:26 +08
+2024-02-14 08:52:37 +08 FINISHED_INCOMPLETE
+
+```
+
+`$ fedora-composes status -n updates 39`
+```
+https://kojipkgs.fedoraproject.org/compose/updates/Fedora-39-updates-testing-20240214.0
+2024-02-14 09:25:36 +08
+2024-02-14 10:03:51 +08 FINISHED
 
 ```
 
@@ -49,8 +58,8 @@ Available commands:
 
 There is the notion of repos and composes.
 
-For example `Fedora-38-updates` is a repo
-and `Fedora-38-updates-20230810.0` is a compose for it.
+For example `Fedora-39-updates` is a repo
+and `Fedora-39-updates-20230810.0` is a compose for it.
 
 Filtering is case insensitive.
 
@@ -66,15 +75,16 @@ Filtering is case insensitive.
 
 `$ fedora-composes list --help`
 ```
-Usage: fedora-composes list [-d|--debug] 
-                            [(-a|--all-composes) | (-l|--limit LIMIT)] 
-                            [-r|--repos] [DIR] [SUBSTR]
+Usage: fedora-composes list [-d|--debug]
+                            [(-a|--all-composes) | (-L|--latest) |
+                              (-l|--limit LIMIT)] [-r|--repos] [DIR] [SUBSTR]
 
   List dirs/composes (by default only last compose)
 
 Available options:
   -d,--debug               debug output
   -a,--all-composes        All composes
+  -L,--latest              Only latest compose
   -l,--limit LIMIT         Max number of composes
   -r,--repos               Only list target repos
   -h,--help                Show this help text
@@ -84,28 +94,29 @@ Available options:
 
 `fedora-composes status rawhide` shows time and status of newest rawhide
 
-`fedora-composes status updates fedora-38` shows time and status of updates push
+`fedora-composes status updates fedora-39` shows time and status of updates push
 
 `fedora-composes status branched 39` shows time and status of branched compose
 
 `$ fedora-composes status --help`
 ```
-Usage: fedora-composes status [-d|--debug] 
-                              [(-a|--all-composes) | (-l|--limit LIMIT)] 
-                              [-n|--no-more] DIR [SUBSTR]
+Usage: fedora-composes status [-d|--debug]
+                              [(-a|--all-composes) | (-L|--latest) |
+                                (-l|--limit LIMIT)] [-n|--no-more] DIR [SUBSTR]
 
   Show compose status
 
 Available options:
   -d,--debug               debug output
   -a,--all-composes        All composes
+  -L,--latest              Only latest compose
   -l,--limit LIMIT         Max number of composes
   -n,--no-more             Do not prompt for more results
   -h,--help                Show this help text
 ```
 
 ## Installation
-fedora-composes is available from Copr:
+fedora-composes rpm builds are available from Copr:
 <https://copr.fedorainfracloud.org/coprs/petersen/fedora-composes/>
 
 ## Build from source

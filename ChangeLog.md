@@ -1,6 +1,6 @@
 # Version history for fedora-composes
 
-## 0.2 (2022-10-27)
+## 0.2 (2024-02-14)
 - output compose urls and use multiple lines for status
 - status: default to showing latest finished and prompt to show older
 - if STARTED only print STATUS time

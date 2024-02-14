@@ -7,7 +7,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Jens Petersen <juhpetersen@gmail.com>
 maintainer:          Jens Petersen <juhpetersen@gmail.com>
-copyright:           2022-2023  Jens Petersen <juhpetersen@gmail.com>
+copyright:           2022-2024  Jens Petersen <juhpetersen@gmail.com>
 category:            Utility
 homepage:            https://github.com/juhp/fedora-composes
 bug-reports:         https://github.com/juhp/fedora-composes/issues
@@ -20,8 +20,8 @@ tested-with:         GHC == 8.6.5
                       || == 8.10.7
                       || == 9.0.2
                       || == 9.2.8
-                      || == 9.4.7
-                      || == 9.6.3
+                      || == 9.4.8
+                      || == 9.6.4
 
 source-repository head
   type:                git
