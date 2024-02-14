@@ -53,6 +53,7 @@ main =
 
     limitOpt =
       flagWith' NoLimit 'a' "all-composes" "All composes" <|>
+      Limit <$> flagWith' 1 'L' "latest" "Only latest compose" <|>
       Limit <$> optionWith auto 'l' "limit" "LIMIT" "Max number of composes"
 
     dirOpt = strArg "DIR"
