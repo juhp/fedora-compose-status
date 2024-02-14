@@ -29,7 +29,7 @@ main :: IO ()
 main =
   simpleCmdArgs' (Just version)
   "check status of fedora composes"
-  "description here" $
+  "https://github.com/juhp/fedora-composes#readme" $
   subcommands
   [ Subcommand "list"
     "List dirs/composes (by default only last compose)" $
