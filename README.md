@@ -5,47 +5,52 @@ A small tool to list and check the status of Fedora composes.
 ## Examples
 
 `$ fedora-composes list --latest rawhide`
+
 ```
-https://kojipkgs.fedoraproject.org/compose/rawhide/Fedora-Rawhide-20240214.n.1
+https://kojipkgs.fedoraproject.org/compose/rawhide/Fedora-Rawhide-20240909.n.0
 ```
 `$ fedora-composes list -l2 branched`
+
 ```
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240214.n.0
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240213.n.1
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-41-20240909.n.0
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-41-20240908.n.0
 ```
 `$ fedora-composes status --no-more branched`
-```
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240214.n.0/logs/global/
-2024-02-14 15:19:10 +08
-2024-02-14 15:31:52 +08 DOOMED
 
-https://kojipkgs.fedoraproject.org/compose/branched/Fedora-40-20240213.n.1
-2024-02-14 03:40:26 +08
-2024-02-14 08:52:37 +08 FINISHED_INCOMPLETE
+```
+https://kojipkgs.fedoraproject.org/compose/branched/Fedora-41-20240909.n.0
+2024-09-09 15:15:03 +08
+2024-09-09 19:59:30 +08 FINISHED_INCOMPLETE
 
 ```
 
-`$ fedora-composes status -n updates 39`
+`$ fedora-composes status -n updates 40`
+
 ```
-https://kojipkgs.fedoraproject.org/compose/updates/Fedora-39-updates-testing-20240214.0
-2024-02-14 09:25:36 +08
-2024-02-14 10:03:51 +08 FINISHED
+https://kojipkgs.fedoraproject.org/compose/updates/Fedora-40-updates-testing-20240909.0
+2024-09-09 22:33:40 +08 STARTED
+
+https://kojipkgs.fedoraproject.org/compose/updates/Fedora-40-updates-20240909.0
+2024-09-09 08:15:35 +08
+2024-09-09 09:13:03 +08 FINISHED
 
 ```
 
 ## Usage
 
 `$ fedora-composes --version`
+
 ```
-0.2
+0.2.1
 ```
 `$ fedora-composes --help`
+
 ```
 check status of fedora composes
 
 Usage: fedora-composes [--version] COMMAND
 
-  description here
+  https://github.com/juhp/fedora-composes#readme
 
 Available options:
   -h,--help                Show this help text
@@ -58,8 +63,8 @@ Available commands:
 
 There is the notion of repos and composes.
 
-For example `Fedora-39-updates` is a repo
-and `Fedora-39-updates-20230810.0` is a compose for it.
+For example `Fedora-40-updates` is a repo
+and `Fedora-40-updates-20240809.0` is a compose for it.
 
 Filtering is case insensitive.
 
@@ -74,6 +79,7 @@ Filtering is case insensitive.
 `fedora-composes list branched` shows latest branched composes
 
 `$ fedora-composes list --help`
+
 ```
 Usage: fedora-composes list [-d|--debug] 
                             [(-a|--all-composes) | (-L|--latest) | 
@@ -94,11 +100,12 @@ Available options:
 
 `fedora-composes status rawhide` shows time and status of newest rawhide
 
-`fedora-composes status updates fedora-39` shows time and status of updates push
+`fedora-composes status updates fedora-40` shows time and status of updates push
 
-`fedora-composes status branched 39` shows time and status of branched compose
+`fedora-composes status branched 41` shows time and status of branched compose
 
 `$ fedora-composes status --help`
+
 ```
 Usage: fedora-composes status [-d|--debug] 
                               [(-a|--all-composes) | (-L|--latest) | 

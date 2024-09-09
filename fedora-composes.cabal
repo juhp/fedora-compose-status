@@ -1,5 +1,5 @@
 name:                fedora-composes
-version:             0.2
+version:             0.2.1
 synopsis:            Query Fedora composes
 description:
         CLI tool to list and check status of Fedora composes
