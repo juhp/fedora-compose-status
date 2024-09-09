@@ -8,7 +8,7 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char ( isDigit )
 import Data.Functor ((<&>))
 import Data.List.Extra (isPrefixOf, lower, nub, sort, takeEnd)
-import Data.Maybe (isJust, isNothing)
+import Data.Maybe (isJust, isNothing, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -77,10 +77,14 @@ data Compose =
   Compose {compDate :: Text, compRepo :: Text}
   deriving (Eq, Ord, Show)
 
-readCompose :: Text -> Compose
+readCompose :: Text -> Maybe Compose
 readCompose t =
-  case T.breakOnEnd (T.pack "-") t of
-    (repoDash,date) -> Compose date (T.init repoDash)
+  -- ignore undated composes like "epel10.0/"
+  if T.pack "-202" `T.isInfixOf` t
+  then
+    case T.breakOnEnd (T.pack "-") t of
+      (repoDash,date) -> Just $ Compose date (T.init repoDash)
+  else Nothing
 
 showCompose :: Compose -> String
 showCompose (Compose d r) = T.unpack r <> "-" <> T.unpack d
@@ -96,7 +100,7 @@ getComposes debug mlimit onlyrepos dir mpat = do
     limitComposes .
     sort .
     repoSubset .
-    map readCompose .
+    mapMaybe readCompose .
     filter (\c -> isDigit (T.last c) && T.any (== '.') c) <$>
     httpDirectories url
   when debug $ print repocomposes
