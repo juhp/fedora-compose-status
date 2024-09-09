@@ -136,7 +136,10 @@ statusCmd debug mlimit nomore dir mpat = do
           if isNothing mfinished
           then
             if nomore
-              then return False
+            then return False
+            else
+              if isJust mlimit
+              then return True
               else do
                 yes <- yesNoDefault (dir == "updates") "Show more results"
                 cursorUp 1 >> clearFromCursorToLineEnd
